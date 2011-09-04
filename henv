@@ -1,0 +1,152 @@
+#!/bin/bash
+###############################################################################
+## Bash Autocompletion for HDFS
+# hdfs(1) completion 
+# taken from: http://blog.rapleaf.com/dev/2009/11/17/command-line-auto-completion-for-hadoop-dfs-commands/
+
+have()
+{
+	unset -v have
+	PATH=$PATH:/sbin:/usr/sbin:/usr/local/sbin type $1 &>/dev/null &&
+		have="yes"
+}
+
+#
+_hdfs()
+{
+	local cur prev
+
+	COMPREPLY=()
+	cur=${COMP_WORDS[COMP_CWORD]}
+	prev=${COMP_WORDS[COMP_CWORD-1]}
+
+	if [[ "$prev" == hdfs ]]; then
+		COMPREPLY=( $( compgen -W 'namenode secondarynamenode namenode \
+			datanode dfsadmin fsck balancer jmxget oiv fetchdt dfs' -- $cur ) )
+	fi
+
+	if [[ "$prev" == namenode ]]; then
+		COMPREPLY=( $( compgen -W '-format' -- $cur ) )
+	fi
+
+	if [[ "$prev" == dfs ]]; then
+		COMPREPLY=( $( compgen -W '-ls -lsr -du -dus -count -mv -cp -rm \
+			-rmr -expunge -put -copyFromLocal -moveToLocal -mkdir -setrep \
+			-touchz -test -stat -tail -chmod -chown -chgrp -help' -- $cur ) )
+	fi
+
+	if [[ "$prev" == -ls ]] || [[ "$prev" == -lsr ]] || \
+		[[ "$prev" == -du ]] || [[ "$prev" == -dus ]] || \
+		[[ "$prev" == -cat ]] || [[ "$prev" == -mkdir ]] || \
+		[[ "$prev" == -put ]] || [[ "$prev" == -rm ]] || \
+		[[ "$prev" == -rmr ]] || [[ "$prev" == -tail ]] || \
+		[[ "$prev" == -cp ]]; then
+		if [[ -z "$cur" ]]; then
+			COMPREPLY=( $( compgen -W "$( hdfs dfs -ls / 2> /dev/null |grep -v ^Found|awk '{print $8}' )" -- "$cur" ) )
+		elif [[ `echo $cur | grep \/$` ]]; then
+			COMPREPLY=( $( compgen -W "$( hdfs dfs -ls $cur 2> /dev/null |grep -v ^Found|awk '{print $8}' )" -- "$cur" ) )
+		else
+			COMPREPLY=( $( compgen -W "$( hdfs dfs -ls $cur* 2> /dev/null |grep -v ^Found|awk '{print $8}' )" -- "$cur" ) )
+		fi
+	fi
+
+}
+have hadoop && complete -F _hdfs hdfs
+
+
+#
+_hdfs_cli_common()
+{
+	#
+	HDFS_NAME=$(hpwd -p)
+	HDFS_PWD=$(hpwd -r)
+	X=${#HDFS_PWD}
+	[[ $X > 0 ]] && X=$(( X + 2 ))
+	#echo .. "$HDFS_NAME"/"$HDFS_PWD"
+	if [[ -z "$cur" ]]; then
+		COMPREPLY=( $( compgen -W "$( hdfs dfs -ls "$HDFS_NAME"/"$HDFS_PWD" 2> /dev/null |grep -v ^Found|awk -v X=$X '{s=substr($8,1+X); print s}' )" -- "$cur" ) )
+	elif [[ `echo $cur | grep \/$` ]]; then
+		COMPREPLY=( $( compgen -W "$( hdfs dfs -ls "$HDFS_NAME"/"$HDFS_PWD"/"$cur" 2> /dev/null |grep -v ^Found|awk -v X=$X '{s=substr($8,1+X); print s}' )" -- "$cur" ) )
+	else
+		COMPREPLY=( $( compgen -W "$( hdfs dfs -ls "$HDFS_NAME"/"$HDFS_PWD"/"$cur"* 2> /dev/null |grep -v ^Found|awk -v X=$X '{s=substr($8,1+X); print s}' )" -- "$cur" ) )
+	fi
+	unset HDFS_NAME
+	unset HDFS_PWD
+}
+
+_hdfs_cli_ls()
+{
+	local cur prev
+
+	COMPREPLY=()
+	cur=${COMP_WORDS[COMP_CWORD]}
+	prev=${COMP_WORDS[COMP_CWORD-1]}
+
+	case "$cur" in 
+		-*) COMPREPLY=( $( compgen -W '-r -v -h' -- $cur ) ); return 0;;
+	esac
+	_hdfs_cli_common
+}
+
+_hdfs_cli_get()
+{
+	local cur prev
+
+	COMPREPLY=()
+	cur=${COMP_WORDS[COMP_CWORD]}
+	prev=${COMP_WORDS[COMP_CWORD-1]}
+
+	case "$cur" in 
+		-*) COMPREPLY=( $( compgen -W '-p -v -h' -- $cur ) ); return 0;;
+	esac
+	_hdfs_cli_common
+}
+
+_hdfs_cli_put()
+{
+	local cur prev
+
+	COMPREPLY=()
+	cur=${COMP_WORDS[COMP_CWORD]}
+	prev=${COMP_WORDS[COMP_CWORD-1]}
+
+	case "$cur" in 
+		-*) COMPREPLY=( $( compgen -W '-v -h' -- $cur ) ); return 0;;
+	esac
+}
+
+have hadoop && complete -F _hdfs_cli_ls hls
+have hadoop && complete -F _hdfs_cli_get hget
+have hadoop && complete -F _hdfs_cli_put hput
+
+unset have
+
+
+# -o bashdefault -o default
+# -o bashdefault -o default
+# -o bashdefault -o default
+
+
+# _hdfs_pwd()
+# {
+#     # validate prefix
+#     ( [ -d $HDFS_PREFIX ] && [ -w $HDFS_PREFIX ] ) || { HDFS_PWD="/"; return 0; };
+#
+#     #
+#     HDFS_PWD=${PWD#${HDFS_PREFIX}}
+#
+#     # compute length of PWD overlap with HDFS_PREFIX
+#     OVERLAP=$(expr "$PWD" : "$HDFS_PREFIX") 
+#     [ $OVERLAP -gt 0 ] || { HDFS_PWD="/"; return 0; };
+#
+#     # remove HDFS_PREFIX from PWD to obtain path into remote HDFS
+#     OVERLAP1=$(( $OVERLAP + 1 ))
+#     HDFS_PWD=$(echo $PWD | cut -b $OVERLAP1-)
+#     # prepend HDFS_PWD with /, if missing and non-zero length
+#     if [ -n "$HDFS_PWD" ]; then
+#         [ $(expr "$HDFS_PWD" : "\/.*" ) -gt 0 ] || { HDFS_PWD=/$HDFS_PWD; }
+#     fi
+#     unset OVERLAP OVERLAP1
+# }
+
+

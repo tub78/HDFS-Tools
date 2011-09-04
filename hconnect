@@ -1,0 +1,79 @@
+#!/bin/bash
+
+# Toggles state of HDFS tunnel
+# (See notes in hdfs-readme.txt for more information)
+
+HDFS_CMD="hdfs dfs"
+HDFS_PORT=2600
+HDFS_HOST=rodin.med.cornell.edu
+
+
+# check for user name
+[ -n "$HDFS_USER" ] || { echo "$(basename $0) > HDFS_USER environment variable is undefined"; exit 1; }
+
+
+# the final grep from command chain returns 0 if matches were found, o.w. 1
+# with the "!" operator, this is negated
+PROCESS=$(! ps -u $USER -eo pid,command |grep 'ssh'|grep $HDFS_HOST|grep -- '-ND')
+ENABLED=$?
+echo "ENABLED: " $ENABLED
+
+
+function usage () {
+    echo "Toggle / check state of HDFS tunnel"
+    echo "Usage: $(basename $0) [-tc]"
+    echo "       -t toggle (default, if no flags specified)"
+    echo "       -c check"
+    echo "       -h display help"
+    exit 2
+}
+
+# process flags
+ARGS=$(getopt tch $@)
+[ $? -eq 0 ] || usage;
+set -- $ARGS
+for i
+do
+    case "$i"
+    in
+        -c)
+            echo "RUNNING PROCESS: " $PROCESS
+            exit 0;;
+        -t)
+            shift;;
+        -h)
+            usage;;
+        --)
+            shift; break;;
+    esac
+done
+
+
+# get PID
+PID=$(echo $PROCESS|cut -d\  -f 1)
+echo "PID: " $PID
+
+
+# toggle
+if [ $ENABLED -eq 1 ]; then
+
+    echo "Stopping HDFS tunnel with PID: '$PID'"
+    sh -x -c "kill -9 $PID"
+
+else
+
+    sh -x -c "ssh -ND $HDFS_PORT $HDFS_USER@$HDFS_HOST &"
+    PID=$(ps -u $USER -eo pid,command |grep 'ssh'|grep $HDFS_HOST|grep -- '-ND')
+    PID=$(echo $PID|cut -d\  -f 1)
+    echo "Started HDFS tunnel with PID: '$PID'"
+
+fi
+
+
+exit;
+
+
+# ps -u $USER -eo pid,command 
+# echo "?:'$?' #:'$#' _:'$_' !:'$!'"
+
+

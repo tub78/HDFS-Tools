@@ -1,0 +1,33 @@
+#!/bin/bash
+
+function usage () {
+    echo "Current path"
+    echo "Usage: $(basename $0) [-rfh]"
+    echo "       -r relative path only"
+    echo "       -p name node only"
+    echo "       -h display help"
+    exit 2
+}
+
+# -h
+[[ $1 == -h ]] && { usage; }; 
+
+
+# -p
+[[ $1 == -p ]] && { pushd / 2>&1 > /dev/null; }; 
+
+HDFS_PWD=${PWD#$HDFS_PREFIX}
+HDFS_PWD=${HDFS_PWD#$PWD}
+HDFS_PWD=${HDFS_PWD#/}
+
+CORE_SITE_XML=$HADOOP_CONF_DIR/core-site.xml
+CORE_SITE_KEY=fs.default.name
+HDFS_NAME=$(grep -A 1 $CORE_SITE_KEY $CORE_SITE_XML | grep "<value>" | perl -p -i -e 's# *<value>(.*)</value> *$#${1}#')
+
+# -r
+[[ $1 == -r ]] && { echo $HDFS_PWD; exit 0; };
+echo $HDFS_NAME/$HDFS_PWD
+
+# -p
+[[ $1 == -p ]] && { popd 2>&1 > /dev/null; };
+

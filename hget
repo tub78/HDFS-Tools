@@ -1,0 +1,104 @@
+#!/bin/bash
+
+# Get files or subtree from HDFS
+
+HDFS_CMD="hdfs dfs"
+HDFS_NAME=$(hpwd -p)
+
+# default
+LOCAL_MKDIR=0;
+VERBOSE=0;
+
+function usage () {
+    echo "Get files or subtree from remote HDFS"
+    echo "Usage: $(basename $0) [-ph] [relative-url-1] [...]"
+    echo "       -p create local directories"
+    echo "       -v verbose"
+    echo "       -h display help"
+    exit 2
+}
+
+
+# process flags
+ARGS=$(getopt pvh $@)
+[ $? -eq 0 ] || usage;
+set -- $ARGS
+for i
+do
+    case "$i"
+    in
+        -p)
+            LOCAL_MKDIR=1;
+            shift;;
+        -v)
+            VERBOSE=1;
+            shift;;
+        -h)
+            usage;;
+        --)
+            shift; break;;
+    esac
+done
+
+# validate prefix
+( [ -d $HDFS_PREFIX ] && [ -w $HDFS_PREFIX ] ) || { echo "$(basename $0) > HDFS_PREFIX directory does not exist, or is not writable"; exit 1; }
+
+# remove HDFS_PREFIX from PWD to obtain path into remote HDFS
+HDFS_PWD=$(hpwd -r)
+
+[ $VERBOSE -eq 0 ] || ( echo "HDFS_PREFIX=$HDFS_PREFIX" )
+[ $VERBOSE -eq 0 ] || ( echo "HDFS_PWD=$HDFS_PWD" )
+
+function processurl () {
+
+    [ $# -gt 0 ] || { echo "$(basename $0) > missing arg to processurl"; exit 1; }
+    #
+    HDFS_URL="$HDFS_PWD"/"$1"
+    HDFS_URL=${HDFS_URL#/}
+    HDFS_URL=${HDFS_URL#/}
+    LOCAL_URL="$HDFS_PREFIX"/"$HDFS_URL"
+
+    # does file exists on hdfs ?
+	( $HDFS_CMD -test -e "$HDFS_NAME"/"$HDFS_URL" >& /dev/null ) \
+		|| { echo "$(basename $0) > HDFS file does not exist: /$HDFS_URL"; exit; }
+
+	# get (enclosing) directory
+	LOCAL_DIR=$LOCAL_URL
+	( $HDFS_CMD -test -d "$HDFS_NAME"/"$HDFS_URL" >& /dev/null ) \
+		|| { LOCAL_DIR=$(dirname $LOCAL_URL); };
+
+    # ensure local directory exists
+    [ $LOCAL_MKDIR -eq 0 ] || { /bin/mkdir -p $LOCAL_DIR; echo "Making dir .."; };
+    [ -d $LOCAL_DIR ] || { echo "$(basename $0) > Missing local directory $LOCAL_DIR"; exit; };
+    [ -w $LOCAL_DIR ] || { echo "$(basename $0) > Local directory $LOCAL_DIR not writable"; exit; };
+
+    [ $VERBOSE -eq 0 ] || ( echo "HDFS_URL=$HDFS_URL" )
+    [ $VERBOSE -eq 0 ] || ( echo "LOCAL_URL=$LOCAL_URL" )
+    [ $VERBOSE -eq 0 ] || ( echo "LOCAL_DIR=$LOCAL_DIR" )
+
+    # get file 
+    $HDFS_CMD -get "$HDFS_NAME"/"$HDFS_URL" "$LOCAL_URL"
+
+}
+
+
+
+# either process current directory, or use commandline args as relative URLs
+if [ $# -eq 0 ]; then
+    #[ $VERBOSE -eq 0 ] || ( echo "$(basename $0) > Processing ./" )
+    processurl "";
+else
+    # concatenate 
+    for i
+    do
+        #[ $VERBOSE -eq 0 ] || ( echo "$(basename $0) > Processing ARG=$i" )
+        processurl $i;
+    done
+fi
+
+
+#
+exit;
+#
+#
+
