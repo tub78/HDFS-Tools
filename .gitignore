@@ -1,0 +1,35 @@
+# gitignore : ignore files that match globs at any depth below the repositories root
+# git config --global core.excludesfile ~/.gitignore
+
+*~
+.*.swp
+*.swp
+*.lock
+
+.DS_Store
+.subversion
+.hg
+
+*.gz
+*.tgz
+*.bz2
+*.zip
+*.vba
+*.jar
+*.pyc
+*.pysave
+
+*.a
+*.o
+*.so
+*.dll
+*.dylib
+*.mexglx
+*.mexmac
+*.mexmaci
+
+*.depend
+.RData
+.Rhistory
+
+
