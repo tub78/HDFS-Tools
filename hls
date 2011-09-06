@@ -11,34 +11,35 @@ VERBOSE=0;
 
 function usage () {
     echo "Subtree listing from remote HDFS"
-    echo "Usage: $(basename $0) [-rh] [relative-url-1] [...]"
+    echo "Usage: $(basename $0) [options] [relative-url-1] [...]"
     echo "       -r recursive directory listing"
     echo "       -v verbose"
     echo "       -h display help"
     exit 2
 }
 
-
-# process flags
-ARGS=$(getopt rvh $@)
-[ $? -eq 0 ] || usage;
-set -- $ARGS
-for i
+# process flags 
+while getopts  "rvh" flag
 do
-    case "$i"
-    in
-        -r)
-            LS_CMD=lsr;
-            shift;;
-        -v)
-            VERBOSE=1;
-            shift;;
-        -h)
-            usage;;
-        --)
-            shift; break;;
+    #echo "$flag" $OPTIND $OPTARG
+    ( [ "$flag" == "h" ] || [ "$flag" == ":" ] || [ "$flag" == "?" ] ) && { usage; };
+    case "$flag" in
+        r)
+            LS_CMD=lsr;;
+        v)
+            VERBOSE=1;;
+        -)
+            break;;
     esac
 done
+shift $(( OPTIND-1 )); OPTIND=1
+
+# http://aplawrence.com/Unix/getopts.html
+#    If an argument is not given for a flag that needs one, "$flag" gets set to
+#    ":" and OPTARG has the misused flag. If an unknown argument is given, a
+#    "?" is put in "$flag", and OPTARG again has the unrecognized flag.
+
+
 
 # validate prefix
 ( [ -d $HDFS_PREFIX ] && [ -w $HDFS_PREFIX ] ) || { echo "$(basename $0) > HDFS_PREFIX directory does not exist, or is not writable"; exit 1; }
@@ -46,64 +47,42 @@ done
 # remove HDFS_PREFIX from PWD to obtain path into remote HDFS
 HDFS_PWD=$(hpwd -r)
 
-[ $VERBOSE -eq 0 ] || ( echo "HDFS_PREFIX=$HDFS_PREFIX" )
-[ $VERBOSE -eq 0 ] || ( echo "HDFS_PWD=$HDFS_PWD" )
+[ $VERBOSE -eq 0 ] || { echo "HDFS_PREFIX=$HDFS_PREFIX"; };
+[ $VERBOSE -eq 0 ] || { echo "HDFS_PWD=$HDFS_PWD"; };
 
 function processurl () {
 
     [ $# -gt 0 ] || { echo "$(basename $0) > missing arg to processurl"; exit 1; }
     #
     HDFS_URL=$HDFS_PWD/$1
-    [ $VERBOSE -eq 0 ] || ( echo "HDFS_URL=$HDFS_URL" )
-	#
-    # does file exists on hdfs ?
-    $HDFS_CMD -$LS_CMD "$HDFS_NAME"/$HDFS_URL
+    HDFS_URL=${HDFS_URL#/}
+    HDFS_URL=${HDFS_URL#/}
+    [ $VERBOSE -eq 0 ] || { echo "HDFS_URL=$HDFS_URL"; };
+    [ $VERBOSE -eq 0 ] || { echo ""; };
 
+    # list file on hdfs
+    $HDFS_CMD -$LS_CMD "$HDFS_NAME"/$HDFS_URL
 }
 
 
 
 # either process current directory, or use commandline args as relative URLs
 if [ $# -eq 0 ]; then
-    #[ $VERBOSE -eq 0 ] || ( echo "$(basename $0) > Processing ./" )
     processurl ""
 else
     # concatenate 
+    set -f
     for i
     do
-        #[ $VERBOSE -eq 0 ] || ( echo "$(basename $0) > Processing ARG=$i" )
         processurl $i
     done
+    set +f
 fi
 
 
 #
 exit;
 #
-
-
-
-
-# testing
-pushd /Users/stu/Data/user >& /dev/null
-#pushd /Users/stu >& /dev/null
-
-
-
-
-# # compute length of PWD overlap with HDFS_PREFIX
-# OVERLAP=$(expr "$PWD" : "$HDFS_PREFIX") 
-# [ $OVERLAP -gt 0 ] || { echo "$(basename $0) > CWD must be under HDFS_PREFIX=$HDFS_PREFIX"; exit 1; }
-# [ $VERBOSE -eq 0 ] || ( echo "OVERLAP=$OVERLAP" )
-#
-#
-# # remove HDFS_PREFIX from PWD to obtain path into remote HDFS
-# OVERLAP1=$(expr $OVERLAP + 1)
-# HDFS_PWD=$(echo $PWD | cut -b $OVERLAP1-)
-# # prepend HDFS_PWD with /, if missing and non-zero length
-# if [ -n "$HDFS_PWD" ]; then
-#     [ $(expr "$HDFS_PWD" : "\/.*" ) -gt 0 ] || { HDFS_PWD=/$HDFS_PWD; }
-# fi
 
 
 

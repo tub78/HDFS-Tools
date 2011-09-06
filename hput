@@ -7,33 +7,38 @@ HDFS_NAME=$(hpwd -p)
 
 # default
 VERBOSE=0;
+FORCE=0;
 
 function usage () {
     echo "Copy files or subtree to remote HDFS"
-    echo "Usage: $(basename $0) [-vh] [relative-url-1] [...]"
+    echo "Usage: $(basename $0) [options] [url-1] [...]"
     echo "       -v verbose"
+    echo "       -f force"
     echo "       -h display help"
     exit 2
 }
 
-
-# process flags
-ARGS=$(getopt vh $@)
-[ $? -eq 0 ] || usage;
-set -- $ARGS
-for i
+# process flags 
+while getopts  "vfh" flag
 do
-    case "$i"
-    in
-        -v)
-            VERBOSE=1;
-            shift;;
-        -h)
-            usage;;
-        --)
-            shift; break;;
+    #echo "$flag" $OPTIND $OPTARG
+    ( [ "$flag" == "h" ] || [ "$flag" == ":" ] || [ "$flag" == "?" ] ) && { usage; };
+    case "$flag" in
+        v)
+            VERBOSE=1;;
+        f)
+            FORCE=1;;
+        -)
+            break;;
     esac
 done
+shift $(( OPTIND-1 )); OPTIND=1
+
+# http://aplawrence.com/Unix/getopts.html
+#    If an argument is not given for a flag that needs one, "$flag" gets set to
+#    ":" and OPTARG has the misused flag. If an unknown argument is given, a
+#    "?" is put in "$flag", and OPTARG again has the unrecognized flag.
+
 
 # validate prefix
 ( [ -d $HDFS_PREFIX ] && [ -w $HDFS_PREFIX ] ) || { echo "$(basename $0) > HDFS_PREFIX directory does not exist, or is not writable"; exit 1; }
@@ -41,8 +46,8 @@ done
 # remove HDFS_PREFIX from PWD to obtain path into remote HDFS
 HDFS_PWD=$(hpwd -r)
 
-[ $VERBOSE -eq 0 ] || ( echo "HDFS_PREFIX=$HDFS_PREFIX" )
-[ $VERBOSE -eq 0 ] || ( echo "HDFS_PWD=$HDFS_PWD" )
+[ $VERBOSE -eq 0 ] || { echo "HDFS_PREFIX=$HDFS_PREFIX"; };
+[ $VERBOSE -eq 0 ] || { echo "HDFS_PWD=$HDFS_PWD"; };
 
 function processurl () {
 
@@ -53,37 +58,48 @@ function processurl () {
     HDFS_URL=${HDFS_URL#/}
     LOCAL_URL="$HDFS_PREFIX"/"$HDFS_URL"
 
-    # does file exist on locally?
-	[ -e $LOCAL_URL ] || { echo "$(basename $0) > Local file does not exist: $HDFS_URL"; exit; };
+	# get (enclosing) directory
+	HDFS_DIR=$(dirname $HDFS_URL)
 
-    [ $VERBOSE -eq 0 ] || ( echo "HDFS_URL=$HDFS_URL" )
-    [ $VERBOSE -eq 0 ] || ( echo "LOCAL_URL=$LOCAL_URL" )
+    [ $VERBOSE -eq 0 ] || { echo "HDFS_URL=$HDFS_URL"; };
+    [ $VERBOSE -eq 0 ] || { echo "LOCAL_URL=$LOCAL_URL"; };
+    [ $VERBOSE -eq 0 ] || { echo "HDFS_DIR=$HDFS_DIR"; };
+    [ $VERBOSE -eq 0 ] || { echo ""; };
+
+    # does url contain glob patterns
+    [ -z "$(echo "$HDFS_URL" | sed -nE '/[^\]\*/p')" ] || { echo "$(basename $0) > file globbing not supported"; exit; };
+    [ -z "$(echo "$HDFS_URL" | sed -nE '/[^\]\?/p')" ] || { echo "$(basename $0) > file globbing not supported"; exit; };
+    [ -z "$(echo "$HDFS_URL" | sed -nE '/(^|[^\])\[.*[^\]\]/p')" ] || { echo "$(basename $0) > file globbing not supported"; exit; };
+    [ -z "$(echo "$HDFS_URL" | sed -nE '/(^|[^\])\{.*[^\]\}/p')" ] || { echo "$(basename $0) > file globbing not supported"; exit; };
+
+    # does file exist on locally?
+	[ -e $LOCAL_URL ] || { echo "$(basename $0) > Local file does not exist: $LOCAL_URL"; exit; };
+
+    # if hdfs file exists, and force specified, erase it
+	[ $FORCE -eq 1 ] \
+        && { $HDFS_CMD -rmr "$HDFS_NAME"/"$HDFS_URL" >& /dev/null; };
 
     # put file 
-    $HDFS_CMD -put "$LOCAL_URL" "$HDFS_NAME"/"$HDFS_URL"
+    $HDFS_CMD -put "$LOCAL_URL" "$HDFS_NAME"/"$HDFS_DIR"
 
 }
 
-
-
 # either process current directory, or use commandline args as relative URLs
 if [ $# -eq 0 ]; then
-    #[ $VERBOSE -eq 0 ] || ( echo "$(basename $0) > Processing ./" )
     processurl "";
 else
     # concatenate 
+    set -f
     for i
     do
-        #[ $VERBOSE -eq 0 ] || ( echo "$(basename $0) > Processing ARG=$i" )
         processurl $i;
     done
+    set +f
 fi
 
 
 #
 exit;
 #
-#
 
 
-#    if [ $? -eq 1 ]; then
