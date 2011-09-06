@@ -21,32 +21,34 @@ echo "ENABLED: " $ENABLED
 
 function usage () {
     echo "Toggle / check state of HDFS tunnel"
-    echo "Usage: $(basename $0) [-tc]"
+    echo "Usage: $(basename $0) [options]"
     echo "       -t toggle (default, if no flags specified)"
     echo "       -c check"
     echo "       -h display help"
     exit 2
 }
 
-# process flags
-ARGS=$(getopt tch $@)
-[ $? -eq 0 ] || usage;
-set -- $ARGS
-for i
+# process flags 
+while getopts  "tch" flag
 do
-    case "$i"
-    in
-        -c)
+    #echo "$flag" $OPTIND $OPTARG
+    ( [ "$flag" == "h" ] || [ "$flag" == ":" ] || [ "$flag" == "?" ] ) && { usage; };
+    case "$flag" in
+        c)
             echo "RUNNING PROCESS: " $PROCESS
             exit 0;;
-        -t)
-            shift;;
-        -h)
-            usage;;
-        --)
-            shift; break;;
+        t)
+            : ;; # noop
+        -)
+            break;;
     esac
 done
+shift $(( OPTIND-1 )); OPTIND=1
+
+# http://aplawrence.com/Unix/getopts.html
+#    If an argument is not given for a flag that needs one, "$flag" gets set to
+#    ":" and OPTARG has the misused flag. If an unknown argument is given, a
+#    "?" is put in "$flag", and OPTARG again has the unrecognized flag.
 
 
 # get PID
@@ -70,10 +72,8 @@ else
 fi
 
 
+#
 exit;
-
-
-# ps -u $USER -eo pid,command 
-# echo "?:'$?' #:'$#' _:'$_' !:'$!'"
+#
 
 

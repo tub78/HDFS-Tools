@@ -1,195 +1,268 @@
-#############################################################################
-Command-line utilities for interacting with a remote Hadoop filesystem (HDFS)
-#############################################################################
-
-The following HDFS tools are found in $(ICB_HADOOP_HOME)/scripts/all 
-
-    hdfs.sh   - Toggles state of HDFS tunnel
-    hls.sh    - Subtree listing from remote HDFS
-    hget.sh   - Get files or subtree from HDFS
-
-With appropriate environment variables and network connectivity, the HDFS
-command toggles a ssh tunnel required to communicate with the remote HDFS.
-
-HLS and HGET are used to manage a local copy of the remote HDFS.  The user 
-first selects a location to hold the "root directory" of the local copy, and 
-sets the HDFSPREFIX environment variable to this location.  Paths to files in
-the local copy are the same as in the remote HDFS, except with the prefix
-added.  This enables the use relative paths, which are converted for the
-remote HDFS appropriately.  Calls to HLS and HGET only work if the current
-working directory is located under the local root.  
-
-Type <CMD> -h for specific usage information.  
-
--------------------------------
-Setting up HDFS tools:  See below for setup examples.
--------------------------------
-
-1. Install (i.e. unzip) hadoop package into HADOOP_HOME
-
-2. Set environment variables in .bash_profile, e.g:
-
-    JAVA_HOME=/System/Library/Frameworks/JavaVM.framework/Versions/1.6.0/Home
-    HADOOP_HOME=~/Research/Hadoop/hadoop
-    HDFSPREFIX=~/Data
-    ICBUSER=sta2013
-
-3. Add the following to your PATH
-
-    $(ICB_HADOOP_HOME)/scripts/all 
-    $(HADOOP_HOME)/hadoop/bin
-
-4. Download & install ICB client configuration files under $(HADOOP_HOME)/hadoop/conf/ 
-
-http://icb.med.cornell.edu/wiki/uploads/4/41/Hadoop-client-conf.zip
-
-5. Set ICBUSER name in hadoop.job.ugi field in $(HADOOP_HOME)/hadoop/conf/core-site.xml 
-
-6. Set JAVA_HOME in $(HADOOP_HOME)/hadoop/conf/hadoop-env.sh
-
-7. Verify tunnel creating using these commands:
-
-ssh -ND 2600 ICBUSER@rodin.med.cornell.edu
-ps -eo user,pid,command |grep ssh
-
- 
- TODO: Figure out how to support wildcards etc.
- 
-   Currently, wildcards cause a problem when passing 
-   arguments to "hadoop fs" commands
- 
-
--------------------------------
-Examples (assuming HDFSPREFIX=~/Data).
--------------------------------
-mac133990 ~ -> 
-mac133990 ~ -> hdfs -c
-    ENABLED:  0
-    RUNNING PROCESS: 
 
 
-mac133990 ~ -> 
-mac133990 ~ -> hdfs -t
-    ENABLED:  0
-    PID: 
-    + ssh -ND 2600 sta2013@rodin.med.cornell.edu
-    Started HDFS tunnel with PID: '7647'
+If you're like me, you get frustrated by the amount of typing that is required to copy a file from your Hadoop filesystem to your local filesystem, e.g.:
+
+{{{ bash
+hdfs dfs -get hdfs://xxx/very/long/path/to/a/file \
+    /yyy/very/long/path/to/a/file
+}}}
+
+Also, if you are like me, you want the directory structures of the two filesystems to be mirror-images.  This means you typically have to type a common path component twice, which is redundant, time consuming, and error prone. 
+
+To address this issue (and to exercise my Bash scripting skills), I hacked together a collection of shell scripts that automate this process, together called *HDFS-Tools*.  The *HDFS-Tools* simplify the management of files in your Hadoop Filesystem by helping to synchronize a _local_ copy of the filesystem with *HDFS*.
+
+## How Does It Work?
+
+To enable *HDFS-Tools*, one must first designate a directory to hold the _root_ of the _local_ copy; this is done by setting the `HDFS_PREFIX` environment variable.  Paths relative to `HDFS_PREFIX` in the local copy are the same as in *HDFS*.
+
+Once this is done, copying data between *HDFS* and your _local_ copy is simply a matter of getting or putting a file; e.g.:
+
+{{{ bash
+hget &lt;path&gt; 
+}}}
+
+*HDFS-Tools* deals with the task of expanding the `path` arguments to create the conventional command format, using the `HDFS_PREFIX` and your *HDFS*'s configuration.  Furthermore, with some code from [rapleaf's dev blog](http://blog.rapleaf.com/dev/2009/11/17/command-line-auto-completion-for-hadoop-dfs-commands/), these commands have been augmented with filename auto-completion. Together, these features make `hget`, `hput`, etc., more convenient than using:
+
+{{{ bash
+hdfs dfs -get &lt;hdfs_path&gt; &lt;local_path&gt;
+}}}
+
+## Filename Auto-Completion
+
+Auto-completion is available for `hls`, `hget`, and `hput`, by pressing `<TAB>`.  There may be a delay before results are displayed, as the query to the remote *HDFS* is issued.  When the `CWD` is below `HDFS_PREFIX`, filename auto-completion displays paths relative to `CWD`; otherwise, they are relative to `HDFS_PREFIX`.  In the later case, the paths are displayed with a `/` prefix.
+
+Auto-completion for directories is a little clunky because a space character is appended to the result.  In order to extend the path further, you must type `<backspace><TAB>`.
+
+## Details
+
+*HDFS-Tools* consists of the following:
+
+[hpwd](file:///Users/stu/Research/HDFS-Tools/hpwd)
+: List corresponding path in *HDFS*.  When the current working directory resides under `HDFS_PREFIX`, the `hpwd` command lists the corresponding location in *HDFS*.  The result has the form: `hdfs://host/path`.  The command `hpwd -r` lists only the `path` component, while `hpwd -p` lists only the `hdfs://host/` component.
+
+[hls](file:///Users/stu/Research/HDFS-Tools/hls)
+: List files from *HDFS*.  `hls [path ..]` lists files from *HDFS* that correspond to `path`; e.g. `hdfs://host/[path ..]`.  When the current working directory resides under `HDFS_PREFIX`, the path is relative to it; e.g. `hdfs://host/CWD/[path ..]`.  A recursive directory listing is produced with a `-r` flag.
+
+[hget](file:///Users/stu/Research/HDFS-Tools/hget)
+: Retrieve files from *HDFS*.  `hget [path ..]` copies the corresponding files from *HDFS* to the local filesystem.  Directories will not be created unless the `-p` flag is present.  Local files will not be overwritten, unless the `-f` flag is included.
+
+[hput](file:///Users/stu/Research/HDFS-Tools/hput)
+: Copy files to *HDFS*.  `hput [path ..]` copies local files to the corresponding locations in *HDFS*.  *HDFS* files will not be overwritten, unless the `-f` flag is included.
+
+[hconnect](file:///Users/stu/Research/HDFS-Tools/hconnect)
+: Connect to a remote *HDFS*.  `hls` opens or closes an ssh tunnel for communication with remote *HDFS*.
+
+[henv](file:///Users/stu/Research/HDFS-Tools/henv)
+: This is a configuration script for *HDFS-Tools* auto-completion.
+
+Use option `-h` to display help for a command, and `-v` for extra debugging information.
+
+When the current working directory is outside of `HDFS_PREFIX`, *HDFS-Tools* behave as though they have been invoked with the current working directory set to `HDFS_PREFIX`.
+
+One drawback of *HDFS-Tools* is that filename globbing is not supported, so you can not do things like `hget '[io]*'`.  
+
+## Installation & Setup
+
+Note: *HDFS-Tools* are configured for use with Hadoop 0.21.0.
+
+### Bare Minimum
+
+ 1. Install these scripts somewhere on your path
+ 1. `HDFS_PREFIX` - Select the _local_ directory where you wish to mirror *HDFS*
+ 1. `HADOOP_CONF_DIR` - Select the directory containing the active configuration, in order to lookup information on *HDFS*
+ 1. Add the following line to your `.bash_profile`
+  {{{ bash
+  source &lt;HDFS-TOOLS&gt;/henv
+  }}}
+
+### For Remote Connections
+
+ 1. `HDFS_USER` - Set the user name used to connect to the remote hadoop filesystem
+ 1. `HDFS_HOST` - Set the host
+ 1. `HDFS_PORT` - Set the port
+
+`hconnect` opens an ssh tunnel to the remote host using `ssh -ND $HDFS_PORT $HDFS_USER@$HDFS_HOST`
 
 
-mac133990 ~ -> 
-mac133990 ~ -> hdfs -c
-    ENABLED:  1
-    RUNNING PROCESS:  7647 ssh -ND 2600 sta2013@rodin.med.cornell.edu
+
+## Examples 1
+
+The first set of examples demonstrate the behavior of *HDFS-Tools* from `HDFS_PREFIX`, where `HDFS_PREFIX=~/Data/Hdfs-2011-08-28`.
+
+### List Files
+
+ 1. `CWD = $(HDFS_PREFIX)` -> `hls`
+  {{{ bash
+  Found 3 items
+  drwxr-xr-x   - stu supergroup          0 2011-09-03 21:50 /Users
+  drwxr-xr-x   - stu supergroup          0 2011-09-03 21:51 /jobtracker
+  drwxr-xr-x   - stu supergroup          0 2011-09-03 21:51 /user
+  }}}
 
 
-mac133990 ~ -> 
-mac133990 ~ -> hls
-    hls.sh > CWD must be under HDFSPREFIX=~/Data
+ 1. `CWD = $(HDFS_PREFIX) ` -> `hls -v user/stu`
+  {{{ bash
+  HDFS_PREFIX=/Users/stu/Data/Hdfs-2011-08-28
+  HDFS_PWD=
+  HDFS_URL=/user/stu/input/hdfs-site.xml
+
+  Found 2 items
+  drwxr-xr-x   - stu supergroup          0 2011-09-03 21:45 /user/stu/input
+  drwxr-xr-x   - stu supergroup          0 2011-09-03 21:51 /user/stu/output
+  }}}
 
 
-mac133990 ~ -> 
-mac133990 ~ -> cd ~/Data/
-mac133990 ~/Data ->
+ 1. `CWD = $(HDFS_PREFIX) ` -> `hls -v not/a/valid/file`
+  {{{ bash
+  HDFS_PREFIX=/Users/stu/Data/Hdfs-2011-08-28
+  HDFS_PWD=
+  HDFS_URL=not/a/valid/file
+
+  ls: Cannot access hdfs://localhost:9000//not/a/valid/file: No such file or directory.
+  }}}
 
 
-mac133990 ~/Data ->
-mac133990 ~/Data -> hls
-    Found 2 items
-    drwxr-xr-x   - hadoop supergroup          0 2009-07-10 13:22 /scratchLocal
-    drwxrwxrwx   - hadoop supergroup          0 2009-08-03 14:13 /user
+### Get Files
+
+ 1. `CWD = $(HDFS_PREFIX) ` -> `hget /user/stu/output`
+  {{{ bash
+  hget > Local path already exists /Users/stu/Data/Hdfs-2011-08-28/user/stu/output/
+  }}}
+
+ 1. `CWD = $(HDFS_PREFIX) ` -> `hget -vf /user/stu/output`
+  {{{ bash
+  hget > Local path already exists /Users/stu/Data/Hdfs-2011-08-28/user/stu/output/
+  HDFS_PREFIX=/Users/stu/Data/Hdfs-2011-08-28
+  HDFS_PWD=
+  HDFS_URL=user/stu/output/
+  LOCAL_URL=/Users/stu/Data/Hdfs-2011-08-28/user/stu/output/
+  LOCAL_DIR=/Users/stu/Data/Hdfs-2011-08-28/user/stu
+
+  }}}
 
 
-mac133990 ~/Data ->
-mac133990 ~/Data -> hls -v user/maqc3/input-data/reads-maqc3/Illumina/
-    HDFSPREFIX=~/Data
-    PWD=~/Data
-    OVERLAP=6
-    HDFSPWD=
-    HDFSURL=/user/maqc3/input-data/reads-maqc3/Illumina/
-    LOCALURL=~/Data/user/maqc3/input-data/reads-maqc3/Illumina/
-    Found 4 items
-    drwxr-xr-x   - maqc3 supergroup          0 2009-06-04 22:31 /user/maqc3/input-data/reads-maqc3/Illumina/100bp
-    drwxr-xr-x   - maqc3 supergroup          0 2009-06-22 17:18 /user/maqc3/input-data/reads-maqc3/Illumina/Brain
-    drwxr-xr-x   - maqc3 supergroup          0 2009-07-13 19:37 /user/maqc3/input-data/reads-maqc3/Illumina/NorthShore
-    drwxr-xr-x   - maqc3 supergroup          0 2009-07-06 11:43 /user/maqc3/input-data/reads-maqc3/Illumina/uhr35
+### Put Files
+
+ 1. `CWD = $(HDFS_PREFIX) ` -> `hput /user/stu/output`
+  {{{ bash
+  put: Target hdfs://localhost:9000/user/stu/output is a directory
+  }}}
 
 
-mac133990 ~/Data ->
-mac133990 ~/Data -> cd user/maqc3/input-data/reads-maqc3/Illumina/Brain
-    -bash: cd: user/maqc3/input-data/reads-maqc3/Illumina/Brain: No such file or directory
+ 1. `CWD = $(HDFS_PREFIX) ` -> `hput -vf /user/stu/output`
+  {{{ bash
+  HDFS_PREFIX=/Users/stu/Data/Hdfs-2011-08-28
+  HDFS_PWD=
+  HDFS_URL=user/stu/output
+  LOCAL_URL=/Users/stu/Data/Hdfs-2011-08-28/user/stu/output
+  HDFS_DIR=user/stu
+
+  }}}
 
 
-mac133990 ~/Data ->
-mac133990 ~/Data -> hls user/maqc3/input-data/reads-maqc3/Illumina/Brain/
-    Found 16 items
-    -rw-r--r--   3 maqc3 supergroup   83230056 2009-06-22 17:15 /user/maqc3/input-data/reads-maqc3/Illumina/Brain/s_1_sequence.compact-reads
-    -rw-r--r--   3 maqc3 supergroup  198350968 2009-06-22 17:15 /user/maqc3/input-data/reads-maqc3/Illumina/Brain/s_1_sequence.fq.gz
-    -rw-r--r--   3 maqc3 supergroup       1210 2009-06-22 17:15 /user/maqc3/input-data/reads-maqc3/Illumina/Brain/s_1_sequence_short.compact-reads
-    -rw-r--r--   3 maqc3 supergroup       9175 2009-06-22 17:15 /user/maqc3/input-data/reads-maqc3/Illumina/Brain/s_1_sequence_short.fq
-    -rw-r--r--   3 maqc3 supergroup  114895300 2009-06-22 17:15 /user/maqc3/input-data/reads-maqc3/Illumina/Brain/s_2_sequence.compact-reads
-    -rw-r--r--   3 maqc3 supergroup  255804498 2009-06-22 17:15 /user/maqc3/input-data/reads-maqc3/Illumina/Brain/s_2_sequence.fq.gz
-    -rw-r--r--   3 maqc3 supergroup  112672171 2009-06-22 17:16 /user/maqc3/input-data/reads-maqc3/Illumina/Brain/s_3_sequence.compact-reads
-    -rw-r--r--   3 maqc3 supergroup  259357908 2009-06-22 17:16 /user/maqc3/input-data/reads-maqc3/Illumina/Brain/s_3_sequence.fq.gz
-    -rw-r--r--   3 maqc3 supergroup  122025101 2009-06-22 17:16 /user/maqc3/input-data/reads-maqc3/Illumina/Brain/s_4_sequence.compact-reads
-    -rw-r--r--   3 maqc3 supergroup  266334414 2009-06-22 17:16 /user/maqc3/input-data/reads-maqc3/Illumina/Brain/s_4_sequence.fq.gz
-    -rw-r--r--   3 maqc3 supergroup  118826217 2009-06-22 17:17 /user/maqc3/input-data/reads-maqc3/Illumina/Brain/s_6_sequence.compact-reads
-    -rw-r--r--   3 maqc3 supergroup  272331720 2009-06-22 17:17 /user/maqc3/input-data/reads-maqc3/Illumina/Brain/s_6_sequence.fq.gz
-    -rw-r--r--   3 maqc3 supergroup  117544429 2009-06-22 17:17 /user/maqc3/input-data/reads-maqc3/Illumina/Brain/s_7_sequence.compact-reads
-    -rw-r--r--   3 maqc3 supergroup  262340995 2009-06-22 17:17 /user/maqc3/input-data/reads-maqc3/Illumina/Brain/s_7_sequence.fq.gz
-    -rw-r--r--   3 maqc3 supergroup  100760514 2009-06-22 17:18 /user/maqc3/input-data/reads-maqc3/Illumina/Brain/s_8_sequence.compact-reads
-    -rw-r--r--   3 maqc3 supergroup  233632305 2009-06-22 17:18 /user/maqc3/input-data/reads-maqc3/Illumina/Brain/s_8_sequence.fq.gz
+### Tab Completion
+
+ 1. `CWD = $(HDFS_PREFIX) ` -> `hls <TAB>`
+  {{{ bash
+  Users       jobtracker  user
+  -&gt; hls *
+  }}}
+
+ 1. `CWD = $(HDFS_PREFIX) ` -> `hget u<TAB>`
+  {{{ bash
+  -&gt; hget user/stu *
+  }}}
+
+ 1. `CWD = $(HDFS_PREFIX) ` -> `hput user/stu<TAB>`
+  {{{ bash
+  /user/stu/input   /user/stu/output
+  -&gt; hput /user/stu/ *
+  }}}
+
+ 1. `CWD = $(HDFS_PREFIX) ` -> `hput user/stu/<TAB>`
+  {{{ bash
+  /user/stu/input   /user/stu/output
+  -&gt; hput /user/stu/*
+  }}}
 
 
-mac133990 ~/Data -> 
-mac133990 ~/Data -> hget user/maqc3/input-data/reads-maqc3/Illumina/Brain/s_1_sequence.compact-reads
-    hget.sh > Local directory does not exist, or is not writable: ~/Data/user/maqc3/input-data/reads-maqc3/Illumina/Brain
-    hget.sh > Try -p flag
+## Examples 2
+
+When the `CWD` is located below `HDFS_PREFIX`, *HDFS-Tools* use relative paths.
+
+ 1. `CWD = $(HDFS_PREFIX)/user/stu` -> `hget <TAB>` 
+  {{{ bash
+  input   output
+  -&gt; hget *
+  }}}
 
 
-mac133990 ~/Data -> 
-mac133990 ~/Data -> hget -pv user/maqc3/input-data/reads-maqc3/Illumina/Brain/s_1_sequence.compact-reads
-    HDFSPREFIX=~/Data
-    PWD=~/Data
-    OVERLAP=6
-    HDFSPWD=
-    HDFSURL=/user/maqc3/input-data/reads-maqc3/Illumina/Brain/s_1_sequence.compact-reads
-    LOCALURL=~/Data/user/maqc3/input-data/reads-maqc3/Illumina/Brain/s_1_sequence.compact-reads
-    ISFILE=1
-    ISDIR=0
-    LOCALDIR=~/Data/user/maqc3/input-data/reads-maqc3/Illumina/Brain
-    CMD=~/Research/Hadoop/hadoop/bin/hadoop fs -get /user/maqc3/input-data/reads-maqc3/Illumina/Brain/s_1_sequence.compact-reads ~/Data/user/maqc3/input-data/reads-maqc3/Illumina/Brain/s_1_sequence.compact-reads
-    ...
+
+## Examples 3
+
+When the `CWD` is not below `HDFS_PREFIX`, *HDFS-Tools* behave as though they were involked from `HDFS_PREFIX`.  The only difference is that paths on the command line are prefixed with `/`.
+
+ 1. `CWD = ~ ` -> `hls` 
+  {{{ bash
+  Found 3 items
+  drwxr-xr-x   - stu supergroup          0 2011-09-03 21:50 /Users
+  drwxr-xr-x   - stu supergroup          0 2011-09-03 21:51 /jobtracker
+  drwxr-xr-x   - stu supergroup          0 2011-09-03 21:51 /user
+  }}}
 
 
-mac133990 ~/Data -> 
-mac133990 ~/Data -> ls user/maqc3/input-data/reads-maqc3/Illumina/Brain/
-    s_1_sequence.compact-reads
+ 1. `CWD = ~ ` -> `hls <TAB>` 
+  {{{ bash
+  /Users       /jobtracker  /user
+  -&gt; hls /*
+  }}}
 
 
-mac133990 ~/Data -> 
-mac133990 ~/Data -> hls -r user/maqc3/input-data/reads-maqc3/Illumina/100bp
-    drwxr-xr-x   - maqc3 supergroup          0 2009-06-04 22:31 /user/maqc3/input-data/reads-maqc3/Illumina/100bp/compact-split
-    -rw-r--r--   3 maqc3 supergroup  325464704 2009-06-04 22:29 /user/maqc3/input-data/reads-maqc3/Illumina/100bp/compact-split/SEQC_Inhouse_ILM_Brain_100bp_MAR2009_fastq-1.compact-reads
-    -rw-r--r--   3 maqc3 supergroup  323904091 2009-06-04 22:29 /user/maqc3/input-data/reads-maqc3/Illumina/100bp/compact-split/SEQC_Inhouse_ILM_Brain_100bp_MAR2009_fastq-2.compact-reads
-    -rw-r--r--   3 maqc3 supergroup  324001625 2009-06-04 22:30 /user/maqc3/input-data/reads-maqc3/Illumina/100bp/compact-split/SEQC_Inhouse_ILM_Brain_100bp_MAR2009_fastq-3.compact-reads
-    -rw-r--r--   3 maqc3 supergroup  324651749 2009-06-04 22:30 /user/maqc3/input-data/reads-maqc3/Illumina/100bp/compact-split/SEQC_Inhouse_ILM_Brain_100bp_MAR2009_fastq-4.compact-reads
-    -rw-r--r--   3 maqc3 supergroup  324276468 2009-06-04 22:30 /user/maqc3/input-data/reads-maqc3/Illumina/100bp/compact-split/SEQC_Inhouse_ILM_Brain_100bp_MAR2009_fastq-5.compact-reads
-    -rw-r--r--   3 maqc3 supergroup  278561961 2009-06-04 22:30 /user/maqc3/input-data/reads-maqc3/Illumina/100bp/compact-split/SEQC_Inhouse_ILM_Brain_100bp_MAR2009_fastq-6.compact-reads
-    -rw-r--r--   3 maqc3 supergroup  336044333 2009-06-04 22:30 /user/maqc3/input-data/reads-maqc3/Illumina/100bp/compact-split/SEQC_Inhouse_ILM_UHR_100bp_MAR2009_fastq-1.compact-reads
-    -rw-r--r--   3 maqc3 supergroup  335763176 2009-06-04 22:30 /user/maqc3/input-data/reads-maqc3/Illumina/100bp/compact-split/SEQC_Inhouse_ILM_UHR_100bp_MAR2009_fastq-2.compact-reads
-    -rw-r--r--   3 maqc3 supergroup  335438175 2009-06-04 22:30 /user/maqc3/input-data/reads-maqc3/Illumina/100bp/compact-split/SEQC_Inhouse_ILM_UHR_100bp_MAR2009_fastq-3.compact-reads
-    -rw-r--r--   3 maqc3 supergroup  335688144 2009-06-04 22:31 /user/maqc3/input-data/reads-maqc3/Illumina/100bp/compact-split/SEQC_Inhouse_ILM_UHR_100bp_MAR2009_fastq-4.compact-reads
-    -rw-r--r--   3 maqc3 supergroup  335992001 2009-06-04 22:31 /user/maqc3/input-data/reads-maqc3/Illumina/100bp/compact-split/SEQC_Inhouse_ILM_UHR_100bp_MAR2009_fastq-5.compact-reads
-    -rw-r--r--   3 maqc3 supergroup  335541696 2009-06-04 22:31 /user/maqc3/input-data/reads-maqc3/Illumina/100bp/compact-split/SEQC_Inhouse_ILM_UHR_100bp_MAR2009_fastq-6.compact-reads
-    -rw-r--r--   3 maqc3 supergroup  336026291 2009-06-04 22:31 /user/maqc3/input-data/reads-maqc3/Illumina/100bp/compact-split/SEQC_Inhouse_ILM_UHR_100bp_MAR2009_fastq-7.compact-reads
-    -rw-r--r--   3 maqc3 supergroup    3523258 2009-06-04 22:31 /user/maqc3/input-data/reads-maqc3/Illumina/100bp/compact-split/SEQC_Inhouse_ILM_UHR_100bp_MAR2009_fastq-8.compact-reads
+ 1. `CWD = ~ ` -> `hput /use<TAB>` 
+  {{{ bash
+  -&gt; hput /user/ *
+  }}}
 
 
-mac133990 ~/Data -> 
-mac133990 ~/Data -> hdfs
-    ENABLED:  1
-    PID:  7647
-    Stopping HDFS tunnel with PID: '7647'
-    + kill -9 7647
+ 1. `CWD = ~ ` -> `hget /user/stu/input` 
+  {{{ bash
+  hget > Local path already exists /Users/stu/Data/Hdfs-2011-08-28/user/stu/input
+  }}}
 
 
+## Examples 4
+
+ 1. `CWD = ~ ` -> `hconnect -c`
+  {{{ bash
+  ENABLED:  0
+  RUNNING PROCESS: 
+  }}}
+
+ 1. `CWD = ~ ` -> `hconnect -t`
+  {{{ bash
+  ENABLED:  0
+  PID:
+    ssh -ND 2600 sta2013@rodin.med.cornell.edu
+  Started HDFS tunnel with PID: '7647'
+  }}}
+
+ 1. `CWD = ~ ` -> `hconnect -c`
+  {{{ bash
+  ENABLED:  1
+  RUNNING PROCESS:  7647 ssh -ND 2600 sta2013@rodin.med.cornell.edu
+  }}}
+
+ 1. `CWD = $(HDFS_PREFIX) ` -> `hconnect`
+  {{{ bash
+  ENABLED:  1
+  PID:  7647
+  Stopping HDFS tunnel with PID: '7647'
+  + kill -9 7647
+  }}}
+
+
+(_A duplicate post appears on my blog [stuartjandrews.blogspot.com](http://stuartjandrews.blogspot.com/2011/09/hadoop-filesystem-tools.html)_)
+
+
+
+<!-- vim: set ft=vimwiki: -->
