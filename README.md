@@ -96,23 +96,23 @@ The first set of examples demonstrate the behavior of *HDFS-Tools* with `CWD=HDF
 ### List Files
 
  1. -> `hls`
-  ``` bash
+``` bash
   Found 3 items
   drwxr-xr-x   - stu supergroup          0 2011-09-03 21:50 /Users
   drwxr-xr-x   - stu supergroup          0 2011-09-03 21:51 /jobtracker
   drwxr-xr-x   - stu supergroup          0 2011-09-03 21:51 /user
-  ```
+```
 
 
  1. -> `hls -v user/stu`
-  ``` bash
+``` bash
   HDFS_PREFIX=/Users/stu/Data/Hdfs-2011-08-28
   HDFS_PWD=
   HDFS_URL=/user/stu/input/hdfs-site.xml
   Found 2 items
   drwxr-xr-x   - stu supergroup          0 2011-09-03 21:45 /user/stu/input
   drwxr-xr-x   - stu supergroup          0 2011-09-03 21:51 /user/stu/output
-  ```
+```
 
 
  1. -> `hls -v not/a/valid/file`
