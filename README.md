@@ -96,6 +96,7 @@ The first set of examples demonstrate the behavior of *HDFS-Tools* with `CWD=HDF
 ### List Files
 
  1. -> `hls`
+
 ``` bash
   Found 3 items
   drwxr-xr-x   - stu supergroup          0 2011-09-03 21:50 /Users
@@ -105,6 +106,7 @@ The first set of examples demonstrate the behavior of *HDFS-Tools* with `CWD=HDF
 
 
  1. -> `hls -v user/stu`
+
 ``` bash
   HDFS_PREFIX=/Users/stu/Data/Hdfs-2011-08-28
   HDFS_PWD=
