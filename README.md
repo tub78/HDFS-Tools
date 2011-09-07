@@ -18,13 +18,13 @@ To enable *HDFS-Tools*, one must first designate a directory to hold the _root_ 
 Once this is done, copying data between *HDFS* and your _local_ copy is simply a matter of getting or putting a file; e.g.:
 
 ``` bash
-hget &lt;path&gt; 
+hget <path> 
 ```
 
 *HDFS-Tools* deals with the task of expanding the `path` arguments to create the conventional command format, using the `HDFS_PREFIX` and your *HDFS*'s configuration.  Furthermore, with some code from [rapleaf's dev blog](http://blog.rapleaf.com/dev/2009/11/17/command-line-auto-completion-for-hadoop-dfs-commands/), these commands have been augmented with filename auto-completion. Together, these features make `hget`, `hput`, etc., more convenient than using:
 
 ``` bash
-hdfs dfs -get &lt;hdfs_path&gt; &lt;local_path&gt;
+hdfs dfs -get <hdfs_path> <local_path>
 ```
 
 ## Filename Auto-Completion
@@ -72,7 +72,7 @@ Note: *HDFS-Tools* are configured for use with Hadoop 0.21.0.
  1. `HADOOP_CONF_DIR` - Select the directory containing the active configuration, in order to lookup information on *HDFS*
  1. Add the following line to your `.bash_profile`
   ``` bash
-  source &lt;HDFS-TOOLS&gt;/henv
+  source <HDFS-TOOLS>/henv
   ```
 
 ### For Remote Connections
@@ -165,24 +165,24 @@ The first set of examples demonstrate the behavior of *HDFS-Tools* from `HDFS_PR
  1. `CWD = $(HDFS_PREFIX) ` -> `hls <TAB>`
   ``` bash
   Users       jobtracker  user
-  -&gt; hls *
+  -> hls *
   ```
 
  1. `CWD = $(HDFS_PREFIX) ` -> `hget u<TAB>`
   ``` bash
-  -&gt; hget user/stu *
+  -> hget user/stu *
   ```
 
  1. `CWD = $(HDFS_PREFIX) ` -> `hput user/stu<TAB>`
   ``` bash
   /user/stu/input   /user/stu/output
-  -&gt; hput /user/stu/ *
+  -> hput /user/stu/ *
   ```
 
  1. `CWD = $(HDFS_PREFIX) ` -> `hput user/stu/<TAB>`
   ``` bash
   /user/stu/input   /user/stu/output
-  -&gt; hput /user/stu/*
+  -> hput /user/stu/*
   ```
 
 
@@ -193,7 +193,7 @@ When the `CWD` is located below `HDFS_PREFIX`, *HDFS-Tools* use relative paths.
  1. `CWD = $(HDFS_PREFIX)/user/stu` -> `hget <TAB>` 
   ``` bash
   input   output
-  -&gt; hget *
+  -> hget *
   ```
 
 
@@ -214,13 +214,13 @@ When the `CWD` is not below `HDFS_PREFIX`, *HDFS-Tools* behave as though they we
  1. `CWD = ~ ` -> `hls <TAB>` 
   ``` bash
   /Users       /jobtracker  /user
-  -&gt; hls /*
+  -> hls /*
   ```
 
 
  1. `CWD = ~ ` -> `hput /use<TAB>` 
   ``` bash
-  -&gt; hput /user/ *
+  -> hput /user/ *
   ```
 
 
