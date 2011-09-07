@@ -95,7 +95,7 @@ The first set of examples demonstrate the behavior of *HDFS-Tools* with `CWD=HDF
 
 ### List Files
 
- 1. -> `hls`
+ * -> `hls`
 
 ``` bash
   Found 3 items
@@ -104,7 +104,7 @@ The first set of examples demonstrate the behavior of *HDFS-Tools* with `CWD=HDF
   drwxr-xr-x   - stu supergroup          0 2011-09-03 21:51 /user
 ```
 
- 2. -> `hls -v user/stu`
+ * -> `hls -v user/stu`
 
 ``` bash
   HDFS_PREFIX=/Users/stu/Data/Hdfs-2011-08-28
@@ -115,7 +115,7 @@ The first set of examples demonstrate the behavior of *HDFS-Tools* with `CWD=HDF
   drwxr-xr-x   - stu supergroup          0 2011-09-03 21:51 /user/stu/output
 ```
 
- 3. -> `hls -v not/a/valid/file`
+ * -> `hls -v not/a/valid/file`
 
 ``` bash
   HDFS_PREFIX=/Users/stu/Data/Hdfs-2011-08-28
@@ -127,13 +127,13 @@ The first set of examples demonstrate the behavior of *HDFS-Tools* with `CWD=HDF
 
 ### Get Files
 
- 1. -> `hget /user/stu/output`
+ * -> `hget /user/stu/output`
 
 ``` bash
   hget > Local path already exists /Users/stu/Data/Hdfs-2011-08-28/user/stu/output/
 ```
 
- 2. -> `hget -vf /user/stu/output`
+ * -> `hget -vf /user/stu/output`
 
 ``` bash
   hget > Local path already exists /Users/stu/Data/Hdfs-2011-08-28/user/stu/output/
@@ -147,14 +147,14 @@ The first set of examples demonstrate the behavior of *HDFS-Tools* with `CWD=HDF
 
 ### Put Files
 
- 1. -> `hput /user/stu/output`
+ * -> `hput /user/stu/output`
 
 ``` bash
   put: Target hdfs://localhost:9000/user/stu/output is a directory
 ```
 
 
- 2. -> `hput -vf /user/stu/output`
+ * -> `hput -vf /user/stu/output`
 
 ``` bash
   HDFS_PREFIX=/Users/stu/Data/Hdfs-2011-08-28
@@ -167,27 +167,27 @@ The first set of examples demonstrate the behavior of *HDFS-Tools* with `CWD=HDF
 
 ### Tab Completion
 
- 1. -> `hls <TAB>`
+ * -> `hls <TAB>`
 
 ``` bash
   Users       jobtracker  user
   -> hls *
 ```
 
- 2. -> `hget u<TAB>`
+ * -> `hget u<TAB>`
 
 ``` bash
   -> hget user/stu *
 ```
 
- 3. -> `hput user/stu<TAB>`
+ * -> `hput user/stu<TAB>`
 
 ``` bash
   /user/stu/input   /user/stu/output
   -> hput /user/stu/ *
 ```
 
- 4. -> `hput user/stu/<TAB>`
+ * -> `hput user/stu/<TAB>`
 
 ``` bash
   /user/stu/input   /user/stu/output
@@ -199,7 +199,7 @@ The first set of examples demonstrate the behavior of *HDFS-Tools* with `CWD=HDF
 
 When the `CWD` is located below `HDFS_PREFIX`, *HDFS-Tools* use relative paths.
 
- 1. -> `hget <TAB>` 
+ * -> `hget <TAB>` 
 
 ``` bash
   input   output
@@ -212,7 +212,7 @@ When the `CWD` is located below `HDFS_PREFIX`, *HDFS-Tools* use relative paths.
 
 When the `CWD` is not below `HDFS_PREFIX`, *HDFS-Tools* behave as though they were involked from `HDFS_PREFIX`.  The only difference is that paths on the command line are prefixed with `/`.
 
- 1. -> `hls` 
+ * -> `hls` 
 
 ``` bash
   Found 3 items
@@ -222,7 +222,7 @@ When the `CWD` is not below `HDFS_PREFIX`, *HDFS-Tools* behave as though they we
 ```
 
 
- 2. -> `hls <TAB>` 
+ * -> `hls <TAB>` 
 
 ``` bash
   /Users       /jobtracker  /user
@@ -230,14 +230,14 @@ When the `CWD` is not below `HDFS_PREFIX`, *HDFS-Tools* behave as though they we
 ```
 
 
- 3. -> `hput /use<TAB>` 
+ * -> `hput /use<TAB>` 
 
 ``` bash
   -> hput /user/ *
 ```
 
 
- 4. -> `hget /user/stu/input` 
+ * -> `hget /user/stu/input` 
 
 ``` bash
   hget > Local path already exists /Users/stu/Data/Hdfs-2011-08-28/user/stu/input
@@ -246,14 +246,14 @@ When the `CWD` is not below `HDFS_PREFIX`, *HDFS-Tools* behave as though they we
 
 ## Examples Part 4
 
- 1. -> `hconnect -c`
+ * -> `hconnect -c`
 
 ``` bash
   ENABLED:  0
   RUNNING PROCESS: 
 ```
 
- 2. -> `hconnect -t`
+ * -> `hconnect -t`
 
 ``` bash
   ENABLED:  0
@@ -262,14 +262,14 @@ When the `CWD` is not below `HDFS_PREFIX`, *HDFS-Tools* behave as though they we
   Started HDFS tunnel with PID: '7647'
 ```
 
- 3. -> `hconnect -c`
+ * -> `hconnect -c`
 
 ``` bash
   ENABLED:  1
   RUNNING PROCESS:  7647 ssh -ND 2600 sta2013@rodin.med.cornell.edu
 ```
 
- 4. -> `hconnect`
+ * -> `hconnect`
 
 ``` bash
   ENABLED:  1
