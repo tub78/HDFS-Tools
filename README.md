@@ -104,8 +104,7 @@ The first set of examples demonstrate the behavior of *HDFS-Tools* with `CWD=HDF
   drwxr-xr-x   - stu supergroup          0 2011-09-03 21:51 /user
 ```
 
-
- 1. -> `hls -v user/stu`
+ 2. -> `hls -v user/stu`
 
 ``` bash
   HDFS_PREFIX=/Users/stu/Data/Hdfs-2011-08-28
@@ -116,76 +115,84 @@ The first set of examples demonstrate the behavior of *HDFS-Tools* with `CWD=HDF
   drwxr-xr-x   - stu supergroup          0 2011-09-03 21:51 /user/stu/output
 ```
 
+ 3. -> `hls -v not/a/valid/file`
 
- 1. -> `hls -v not/a/valid/file`
-  ``` bash
+``` bash
   HDFS_PREFIX=/Users/stu/Data/Hdfs-2011-08-28
   HDFS_PWD=
   HDFS_URL=not/a/valid/file
   ls: Cannot access hdfs://localhost:9000//not/a/valid/file: No such file or directory.
-  ```
+```
 
 
 ### Get Files
 
  1. -> `hget /user/stu/output`
-  ``` bash
-  hget > Local path already exists /Users/stu/Data/Hdfs-2011-08-28/user/stu/output/
-  ```
 
- 1. -> `hget -vf /user/stu/output`
-  ``` bash
+``` bash
+  hget > Local path already exists /Users/stu/Data/Hdfs-2011-08-28/user/stu/output/
+```
+
+ 2. -> `hget -vf /user/stu/output`
+
+``` bash
   hget > Local path already exists /Users/stu/Data/Hdfs-2011-08-28/user/stu/output/
   HDFS_PREFIX=/Users/stu/Data/Hdfs-2011-08-28
   HDFS_PWD=
   HDFS_URL=user/stu/output/
   LOCAL_URL=/Users/stu/Data/Hdfs-2011-08-28/user/stu/output/
   LOCAL_DIR=/Users/stu/Data/Hdfs-2011-08-28/user/stu
-  ```
+```
 
 
 ### Put Files
 
  1. -> `hput /user/stu/output`
-  ``` bash
+
+``` bash
   put: Target hdfs://localhost:9000/user/stu/output is a directory
-  ```
+```
 
 
- 1. -> `hput -vf /user/stu/output`
-  ``` bash
+ 2. -> `hput -vf /user/stu/output`
+
+``` bash
   HDFS_PREFIX=/Users/stu/Data/Hdfs-2011-08-28
   HDFS_PWD=
   HDFS_URL=user/stu/output
   LOCAL_URL=/Users/stu/Data/Hdfs-2011-08-28/user/stu/output
   HDFS_DIR=user/stu
-  ```
+```
 
 
 ### Tab Completion
 
  1. -> `hls <TAB>`
-  ``` bash
+
+``` bash
   Users       jobtracker  user
   -> hls *
-  ```
+```
 
- 1. -> `hget u<TAB>`
-  ``` bash
+ 2. -> `hget u<TAB>`
+
+``` bash
   -> hget user/stu *
-  ```
+```
 
- 1. -> `hput user/stu<TAB>`
-  ``` bash
+ 3. -> `hput user/stu<TAB>`
+
+``` bash
   /user/stu/input   /user/stu/output
   -> hput /user/stu/ *
-  ```
+```
 
- 1. -> `hput user/stu/<TAB>`
-  ``` bash
+ 4. -> `hput user/stu/<TAB>`
+
+``` bash
   /user/stu/input   /user/stu/output
   -> hput /user/stu/*
-  ```
+```
 
 
 ## Examples Part 2
@@ -193,10 +200,11 @@ The first set of examples demonstrate the behavior of *HDFS-Tools* with `CWD=HDF
 When the `CWD` is located below `HDFS_PREFIX`, *HDFS-Tools* use relative paths.
 
  1. -> `hget <TAB>` 
-  ``` bash
+
+``` bash
   input   output
   -> hget *
-  ```
+```
 
 
 
@@ -205,62 +213,70 @@ When the `CWD` is located below `HDFS_PREFIX`, *HDFS-Tools* use relative paths.
 When the `CWD` is not below `HDFS_PREFIX`, *HDFS-Tools* behave as though they were involked from `HDFS_PREFIX`.  The only difference is that paths on the command line are prefixed with `/`.
 
  1. -> `hls` 
-  ``` bash
+
+``` bash
   Found 3 items
   drwxr-xr-x   - stu supergroup          0 2011-09-03 21:50 /Users
   drwxr-xr-x   - stu supergroup          0 2011-09-03 21:51 /jobtracker
   drwxr-xr-x   - stu supergroup          0 2011-09-03 21:51 /user
-  ```
+```
 
 
- 1. -> `hls <TAB>` 
-  ``` bash
+ 2. -> `hls <TAB>` 
+
+``` bash
   /Users       /jobtracker  /user
   -> hls /*
-  ```
+```
 
 
- 1. -> `hput /use<TAB>` 
-  ``` bash
+ 3. -> `hput /use<TAB>` 
+
+``` bash
   -> hput /user/ *
-  ```
+```
 
 
- 1. -> `hget /user/stu/input` 
-  ``` bash
+ 4. -> `hget /user/stu/input` 
+
+``` bash
   hget > Local path already exists /Users/stu/Data/Hdfs-2011-08-28/user/stu/input
-  ```
+```
 
 
 ## Examples Part 4
 
  1. -> `hconnect -c`
-  ``` bash
+
+``` bash
   ENABLED:  0
   RUNNING PROCESS: 
-  ```
+```
 
- 1. -> `hconnect -t`
-  ``` bash
+ 2. -> `hconnect -t`
+
+``` bash
   ENABLED:  0
   PID:
     ssh -ND 2600 sta2013@rodin.med.cornell.edu
   Started HDFS tunnel with PID: '7647'
-  ```
+```
 
- 1. -> `hconnect -c`
-  ``` bash
+ 3. -> `hconnect -c`
+
+``` bash
   ENABLED:  1
   RUNNING PROCESS:  7647 ssh -ND 2600 sta2013@rodin.med.cornell.edu
-  ```
+```
 
- 1. -> `hconnect`
-  ``` bash
+ 4. -> `hconnect`
+
+``` bash
   ENABLED:  1
   PID:  7647
   Stopping HDFS tunnel with PID: '7647'
   + kill -9 7647
-  ```
+```
 
 
 (_A duplicate post appears on my blog [stuartjandrews.blogspot.com](http://stuartjandrews.blogspot.com/2011/09/hadoop-filesystem-tools.html)_)
